@@ -34,5 +34,14 @@ int main(int argc, char *argv[]) {
     cout << "Mejor fitness: " << result.fitness << endl;
     cout << "Evaluaciones: " << result.evaluations << endl;
 
+    // Mostrar elementos seleccionados
+    cout << "Elementos seleccionados: ";
+    for (size_t i = 0; i < result.solution.size(); i++) {
+        if (result.solution[i]) {
+            cout << i << " ";
+        }
+    }
+    cout << endl;
+
     return 0;
 } 
