@@ -13,6 +13,9 @@ private:
 public:
     MDDProblem(const std::string& filename);
     
+    // Método para obtener m
+    int getM() const { return m; }
+    
     // Métodos obligatorios de Problem
     tFitness fitness(const tSolution &solution) override;
     tSolution createSolution() override;

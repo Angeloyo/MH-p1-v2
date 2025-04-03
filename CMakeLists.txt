@@ -9,3 +9,4 @@ INCLUDE_DIRECTORIES("common" "inc")
 
 ADD_EXECUTABLE(main "main.cpp" ${C_SOURCES})
 ADD_EXECUTABLE(test_random "test_random.cpp" ${C_SOURCES})
+ADD_EXECUTABLE(test_greedy "test_greedy.cpp" ${C_SOURCES})
