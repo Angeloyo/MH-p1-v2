@@ -6,6 +6,7 @@
 #include <limits>
 #include <random.hpp>
 #include "mddproblem.h"
+#include <set>
 
 using namespace std;
 using Random = effolkronium::random_static;
@@ -32,56 +33,52 @@ template <class T> void print_vector(string name, const vector<T> &sol) {
 ResultMH GreedySearch::optimize(Problem *problem, int maxevals) {
   assert(maxevals > 0);
   
-  // Preparar solución vacía
-  size_t n = problem->getSolutionSize();
-  tSolution solution(n, false);
+  // Obtener problema MDD
+  MDDProblem* mddProblem = dynamic_cast<MDDProblem*>(problem);
+  int n = mddProblem->getN();
+  int m = mddProblem->getM();
   
   // Contador de evaluaciones
   int evals = 0;
   
-  // Inicializar conjunto de elementos disponibles
-  vector<int> available;
-  for (size_t i = 0; i < n; i++) {
-    available.push_back(i);
+  // Inicializar conjuntos de elementos disponibles y seleccionados
+  set<int> available;
+  for (int i = 0; i < n; i++) {
+    available.insert(i);
   }
   
-  // Obtener instancia MDDProblem para acceder a m
-  MDDProblem* mddProblem = dynamic_cast<MDDProblem*>(problem);
-  int m = mddProblem->getM();
-  
-  // Vector para almacenar los elementos seleccionados
-  vector<int> selected;
+  // Vector para la solución (inicialmente vacío)
+  tSolution solution;
   
   // Seleccionar primer elemento aleatorio
   int rand_index = Random::get<int>(0, available.size() - 1);
-  int first_elem = available[rand_index];
-  solution[first_elem] = true;
-  selected.push_back(first_elem);
-  available.erase(available.begin() + rand_index);
+  auto it = available.begin();
+  advance(it, rand_index);
+  int first_elem = *it;
+  
+  // Añadir primer elemento a la solución
+  solution.push_back(first_elem);
+  available.erase(first_elem);
   
   // Seleccionar los m-1 elementos restantes
-  while (selected.size() < m && evals < maxevals) {
+  while (solution.size() < m && evals < maxevals) {
     float best_dispersion = numeric_limits<float>::max();
-    int best_idx = -1;
+    int best_elem = -1;
     
-    // Evaluar cada elemento no seleccionado
-    for (size_t i = 0; i < available.size(); i++) {
-      int candidate = available[i];
+    // Probar cada elemento no seleccionado
+    for (int candidate : available) {
+      // Crear solución temporal con el candidato
+      tSolution temp_solution = solution;
+      temp_solution.push_back(candidate);
       
-      // Añadir temporalmente el candidato a la solución
-      solution[candidate] = true;
-      
-      // Evaluar la nueva solución
-      float dispersion = problem->fitness(solution);
+      // Evaluar
+      float dispersion = problem->fitness(temp_solution);
       evals++;
-      
-      // Quitar el candidato para probar el siguiente
-      solution[candidate] = false;
       
       // Actualizar el mejor si mejora
       if (dispersion < best_dispersion) {
         best_dispersion = dispersion;
-        best_idx = i;
+        best_elem = candidate;
       }
       
       // Limitar evaluaciones
@@ -91,12 +88,13 @@ ResultMH GreedySearch::optimize(Problem *problem, int maxevals) {
     // Si alcanzamos el límite de evaluaciones
     if (evals >= maxevals) break;
     
-    // Añadir el mejor elemento encontrado
-    int best_elem = available[best_idx];
-    solution[best_elem] = true;
-    selected.push_back(best_elem);
-    available.erase(available.begin() + best_idx);
+    // Añadir el mejor elemento a la solución
+    solution.push_back(best_elem);
+    available.erase(best_elem);
   }
+  
+  // Ordenar la solución final (opcional)
+  sort(solution.begin(), solution.end());
   
   // Calcular fitness final
   tFitness final_fitness = problem->fitness(solution);

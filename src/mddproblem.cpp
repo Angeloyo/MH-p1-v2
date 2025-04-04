@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <random.hpp>
+#include <set>
 
 using namespace std;
 using Random = effolkronium::random_static;
@@ -33,19 +34,30 @@ MDDProblem::MDDProblem(const string& filename) : filename(filename) {
 }
 
 tFitness MDDProblem::fitness(const tSolution &solution) {
-    // Calcular sumas para elementos seleccionados
-    vector<float> sums;
+    // Calcular sumas para cada elemento seleccionado
+    vector<float> sums(solution.size(), 0.0);
     
-    for (int i = 0; i < n; i++) {
-        if (solution[i]) {
-            float sum = 0.0;
-            for (int j = 0; j < n; j++) {
-                if (i != j && solution[j]) {
-                    sum += distances[i][j];
+    // Para cada par de índices seleccionados, sumar sus distancias
+    for (int i = 0; i < solution.size(); i++) {
+        for (int j = 0; j < solution.size(); j++) {
+            if (i != j) {
+                int idx1 = solution[i];
+                int idx2 = solution[j];
+                
+                // Asegurarse de que los índices son válidos
+                if (idx1 < 0 || idx1 >= n || idx2 < 0 || idx2 >= n) {
+                    cerr << "Error: Índices fuera de rango en fitness()" << endl;
+                    return numeric_limits<tFitness>::max();
                 }
+                
+                sums[i] += distances[idx1][idx2];
             }
-            sums.push_back(sum);
         }
+    }
+    
+    // Si solo hay un elemento en la solución, no hay dispersión
+    if (solution.size() <= 1) {
+        return 0.0;
     }
     
     // Dispersión = max - min
@@ -55,28 +67,115 @@ tFitness MDDProblem::fitness(const tSolution &solution) {
     return maxSum - minSum;
 }
 
-tSolution MDDProblem::createSolution() {
-    tSolution solution(n, false); // Inicialmente nada seleccionado
+// Generar información para factorización
+SolutionFactoringInfo* MDDProblem::generateFactoringInfo(const tSolution &solution) {
+    MDDFactoringInfo* info = new MDDFactoringInfo(m);
     
-    // Seleccionar m elementos aleatoriamente
-    vector<int> indices(n);
-    for (int i = 0; i < n; i++) {
-        indices[i] = i;
-    }
-    
-    Random::shuffle(indices);
-    
+    // Calcular sumas para cada elemento seleccionado
     for (int i = 0; i < m; i++) {
-        solution[indices[i]] = true;
+        for (int j = 0; j < m; j++) {
+            if (i != j) {
+                int idx1 = solution[i];
+                int idx2 = solution[j];
+                info->sums[i] += distances[idx1][idx2];
+            }
+        }
     }
+    
+    return info;
+}
+
+// Fitness factorizado - calcular efecto de reemplazar elemento en pos_change por new_value
+tFitness MDDProblem::fitness(const tSolution &solution,
+                           SolutionFactoringInfo *solution_info,
+                           unsigned pos_change, tDomain new_value) {
+    MDDFactoringInfo* info = dynamic_cast<MDDFactoringInfo*>(solution_info);
+    
+    // Calcular nueva suma para la posición cambiada
+    float newSum = 0.0;
+    int oldValue = solution[pos_change];
+    
+    // Calcular suma para el nuevo elemento
+    for (int i = 0; i < m; i++) {
+        if (i != pos_change) {
+            int otherIdx = solution[i];
+            newSum += distances[new_value][otherIdx];
+        }
+    }
+    
+    // Crear copia de las sumas actuales
+    vector<float> newSums = info->sums;
+    
+    // Actualizar las sumas del resto de elementos
+    for (int i = 0; i < m; i++) {
+        if (i != pos_change) {
+            int otherIdx = solution[i];
+            // Restar la distancia al elemento antiguo
+            newSums[i] -= distances[oldValue][otherIdx];
+            // Sumar la distancia al nuevo elemento
+            newSums[i] += distances[new_value][otherIdx];
+        }
+    }
+    
+    // Reemplazar la suma del elemento cambiado
+    newSums[pos_change] = newSum;
+    
+    // Calcular dispersión
+    float maxSum = *max_element(newSums.begin(), newSums.end());
+    float minSum = *min_element(newSums.begin(), newSums.end());
+    
+    return maxSum - minSum;
+}
+
+// Actualizar información de factorización
+void MDDProblem::updateSolutionFactoringInfo(SolutionFactoringInfo *solution_info,
+                                         const tSolution &solution,
+                                         unsigned pos_change,
+                                         tDomain new_value) {
+    MDDFactoringInfo* info = dynamic_cast<MDDFactoringInfo*>(solution_info);
+    int oldValue = solution[pos_change];
+    
+    // Actualizar sumas de todos los elementos
+    for (int i = 0; i < m; i++) {
+        if (i != pos_change) {
+            int otherIdx = solution[i];
+            // Actualizar suma del elemento en posición i
+            info->sums[i] -= distances[oldValue][otherIdx];
+            info->sums[i] += distances[new_value][otherIdx];
+        }
+    }
+    
+    // Recalcular suma para el elemento cambiado
+    info->sums[pos_change] = 0.0;
+    for (int i = 0; i < m; i++) {
+        if (i != pos_change) {
+            int otherIdx = solution[i];
+            info->sums[pos_change] += distances[new_value][otherIdx];
+        }
+    }
+}
+
+tSolution MDDProblem::createSolution() {
+    // Crear conjunto de elementos seleccionados aleatoriamente
+    set<int> uniqueValues;
+    
+    // Seleccionar m elementos únicos aleatorios
+    while (uniqueValues.size() < m) {
+        int randomValue = Random::get<int>(0, n - 1);
+        uniqueValues.insert(randomValue);
+    }
+    
+    // Convertir a vector y ordenar
+    tSolution solution(uniqueValues.begin(), uniqueValues.end());
+    sort(solution.begin(), solution.end());
     
     return solution;
 }
 
 size_t MDDProblem::getSolutionSize() {
-    return n;
+    return m; // Ahora devuelve m en lugar de n
 }
 
 std::pair<tDomain, tDomain> MDDProblem::getSolutionDomainRange() {
-    return std::make_pair(false, true);
+    return std::make_pair(0, n - 1); // Rango de índices válidos
 } 

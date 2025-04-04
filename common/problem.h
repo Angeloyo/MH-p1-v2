@@ -15,6 +15,7 @@ using Random = effolkronium::random_static;
  * The idea is to inherit from this class for specific problems.
  */
 class SolutionFactoringInfo {
+public: // Cambiado a public para que MDDFactoringInfo pueda acceder
   virtual ~SolutionFactoringInfo() = default; // Default destructor
 };
 

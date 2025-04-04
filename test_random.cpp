@@ -2,6 +2,7 @@
 #include <problem.h>
 #include <random.hpp>
 #include <string>
+#include <chrono>
 #include "mddproblem.h"
 #include "randomsearch.h"
 
@@ -26,20 +27,24 @@ int main(int argc, char *argv[]) {
     // Crear el algoritmo aleatorio
     RandomSearch alg;
     
+    // Iniciar medición de tiempo
+    auto start = chrono::high_resolution_clock::now();
+    
     // Ejecutar el algoritmo con 100000 evaluaciones
     cout << "Ejecutando RandomSearch en " << filename << " con semilla " << seed << endl;
     ResultMH result = alg.optimize(&problem, 100000);
     
+    // Finalizar medición de tiempo
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double> elapsed = end - start;
+    
     // Mostrar resultados
     cout << "Mejor fitness: " << result.fitness << endl;
     cout << "Evaluaciones: " << result.evaluations << endl;
-
-    // Mostrar elementos seleccionados
+    cout << "Tiempo de ejecución: " << elapsed.count() << " segundos" << endl;
     cout << "Elementos seleccionados: ";
-    for (size_t i = 0; i < result.solution.size(); i++) {
-        if (result.solution[i]) {
-            cout << i << " ";
-        }
+    for (int idx : result.solution) {
+        cout << idx << " ";
     }
     cout << endl;
 
