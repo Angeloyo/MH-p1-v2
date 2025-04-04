@@ -1,0 +1,5 @@
+Algoritmo,Desv,Tiempo
+Random,252.361,2.42691
+Greedy,366.898,0.0165768
+RandLS,182.19,0.0234563
+HeurLS,196.494,0.0501919
