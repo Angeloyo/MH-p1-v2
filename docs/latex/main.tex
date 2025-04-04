@@ -3,9 +3,12 @@
 \usepackage[spanish]{babel}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{geometry}
+\usepackage[top=2.6cm, bottom=2.6cm, left=2.5cm, right=2.5cm]{geometry}
 \usepackage{parskip}
 \usepackage{lipsum} % Para texto de ejemplo
+\usepackage{amsmath} % Para fórmulas matemáticas
+\usepackage{algorithm} % Para escribir algoritmos
+\usepackage{algpseudocode} % Para pseudocódigo
 
 \title{Metaheurísticas: Práctica 1}
 \author{Ángel Sánchez Guerrero}
@@ -74,5 +77,589 @@ Este problema tiene múltiples aplicaciones prácticas, como:
 \end{itemize}
 
 Debido a su complejidad computacional, resulta necesario emplear métodos aproximados para su resolución, como algoritmos voraces (greedy), búsqueda local o metaheurísticas más avanzadas, que permitan obtener soluciones de calidad en un tiempo razonable.
+
+\section{Breve descripción de la aplicación de los algoritmos empleados al problema}
+
+\subsection{Representación de soluciones}
+
+La representación de soluciones utilizada en este trabajo es un vector de enteros que contiene los índices de los \(m\) elementos seleccionados del conjunto original de \(n\) elementos. En la implementación, esto se maneja como un objeto \texttt{tSolution}, que es simplemente un vector de enteros donde cada posición contiene el índice (entre 0 y n-1) de un elemento seleccionado.
+
+Esta representación garantiza que:
+\begin{itemize}
+    \item Cada solución contiene exactamente \(m\) elementos
+    \item No hay elementos repetidos
+    \item El orden de los elementos no es relevante, aunque por simplicidad se mantienen ordenados
+\end{itemize}
+
+Por ejemplo, para un problema con \(n=100\) y \(m=10\), una solución válida podría ser el vector:
+\[S = [3, 15, 24, 36, 42, 55, 67, 78, 83, 97]\]
+
+\subsection{Cálculo de la función objetivo}
+
+La función objetivo del MDDP evalúa la dispersión diferencial de una solución dada. Se implementa de la siguiente manera:
+
+\begin{algorithm}
+\caption{Cálculo de la dispersión diferencial}
+\begin{algorithmic}[1]
+\Function{fitness}{solucion}
+    \State $sumas \gets$ vector de tamaño $m$ inicializado con ceros
+    \For{$i \gets 0$ hasta $m-1$}
+        \For{$j \gets 0$ hasta $m-1$}
+            \If{$i \neq j$}
+                \State $idx1 \gets$ solucion$[i]$
+                \State $idx2 \gets$ solucion$[j]$
+                \State $sumas[i] \gets sumas[i] + distancias[idx1][idx2]$
+            \EndIf
+        \EndFor
+    \EndFor
+    \State $maxSuma \gets$ máximo valor en $sumas$
+    \State $minSuma \gets$ mínimo valor en $sumas$
+    \State \Return $maxSuma - minSuma$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+
+\subsection{Factorización del cálculo de la función objetivo}
+
+Para mejorar la eficiencia, se implementa una factorización que permite calcular el efecto de un cambio en la solución sin recalcular completamente la función objetivo. Esta factorización mantiene las sumas de distancias para cada elemento seleccionado y las actualiza cuando se realiza un movimiento:
+
+\begin{algorithm}
+\caption{Cálculo factorizado al reemplazar un elemento}
+\begin{algorithmic}[1]
+\Function{fitness\_factorizado}{solucion, info, pos\_cambio, nuevo\_valor}
+    \State $viejo\_valor \gets$ solucion$[pos\_cambio]$
+    \State $nueva\_suma \gets 0$
+    \State $nuevas\_sumas \gets$ copia de $info.sumas$
+    
+    \For{$i \gets 0$ hasta $m-1$}
+        \If{$i \neq pos\_cambio$}
+            \State $idx \gets$ solucion$[i]$
+            \State $nueva\_suma \gets nueva\_suma + distancias[nuevo\_valor][idx]$
+            \State $nuevas\_sumas[i] \gets nuevas\_sumas[i] - distancias[viejo\_valor][idx] + distancias[nuevo\_valor][idx]$
+        \EndIf
+    \EndFor
+    
+    \State $nuevas\_sumas[pos\_cambio] \gets nueva\_suma$
+    \State $max\_suma \gets$ máximo valor en $nuevas\_sumas$
+    \State $min\_suma \gets$ mínimo valor en $nuevas\_sumas$
+    \State \Return $max\_suma - min\_suma$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Operador de vecindad: Intercambio}
+
+El operador de vecindad utilizado en la búsqueda local es el operador de intercambio (Int), que consiste en reemplazar un elemento seleccionado por otro no seleccionado. Este operador mantiene la cardinalidad de la solución constante y garantiza que todas las soluciones vecinas sean factibles.
+
+\begin{algorithm}
+\caption{Operador de intercambio}
+\begin{algorithmic}[1]
+\Function{Intercambio}{solucion, pos, nuevo\_valor}
+    \State $nueva\_solucion \gets$ copia de $solucion$
+    \State $nueva\_solucion[pos] \gets nuevo\_valor$
+    \State \Return $nueva\_solucion$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+
+\subsection{Generación de soluciones aleatorias}
+
+Para inicializar los algoritmos, se generan soluciones aleatorias válidas mediante el siguiente procedimiento:
+
+\begin{algorithm}
+\caption{Generación de solución aleatoria}
+\begin{algorithmic}[1]
+\Function{CrearSolucionAleatoria}{}
+    \State $conjunto\_unico \gets$ conjunto vacío
+    \While{tamaño de $conjunto\_unico < m$}
+        \State $valor\_aleatorio \gets$ entero aleatorio entre $0$ y $n-1$
+        \State Insertar $valor\_aleatorio$ en $conjunto\_unico$
+    \EndWhile
+    \State $solucion \gets$ convertir $conjunto\_unico$ a vector
+    \State Ordenar $solucion$
+    \State \Return $solucion$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+Estas definiciones y operadores comunes serán utilizados por los distintos algoritmos implementados para resolver el problema MDDP, proporcionando una base unificada para su desarrollo y análisis.
+
+\newpage
+
+\section{Descripción en pseudocódigo de los algoritmos implementados}
+
+En esta sección se presentan los pseudocódigos específicos de los algoritmos implementados para resolver el problema MDDP. Estos algoritmos utilizan los operadores y definiciones comunes presentados en la sección anterior.
+
+\subsection{Algoritmo Aleatorio}
+
+El algoritmo aleatorio es el más simple de los implementados. Consiste en generar múltiples soluciones aleatorias y quedarse con la mejor.
+
+\begin{algorithm}
+\caption{Algoritmo de Búsqueda Aleatoria}
+\begin{algorithmic}[1]
+\Function{OptimizarAleatorio}{problema, max\_evals}
+    \State $mejor\_solucion \gets$ nulo
+    \State $mejor\_fitness \gets$ $\infty$
+    
+    \For{$i \gets 1$ hasta $max\_evals$}
+        \State $solucion \gets$ CrearSolucionAleatoria()
+        \State $fitness \gets$ problema.fitness($solucion$)
+        
+        \If{$fitness < mejor\_fitness$}
+            \State $mejor\_solucion \gets solucion$
+            \State $mejor\_fitness \gets fitness$
+        \EndIf
+    \EndFor
+    
+    \State \Return $\{mejor\_solucion, mejor\_fitness\}$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+
+\subsection{Algoritmo Greedy}
+
+El algoritmo Greedy para el problema MDDP construye una solución progresivamente, comenzando con un elemento aleatorio y añadiendo en cada paso el elemento que minimice la dispersión de la solución parcial.
+
+\begin{algorithm}
+\caption{Algoritmo Greedy para el MDDP}
+\begin{algorithmic}[1]
+\Function{OptimizarGreedy}{problema, max\_evals}
+    \State $n \gets$ problema.getN()
+    \State $m \gets$ problema.getM()
+    \State $evals \gets 0$
+    
+    \State // Inicializar conjuntos de elementos disponibles y seleccionados
+    \State $disponibles \gets \{0, 1, 2, ..., n-1\}$ 
+    \State $solucion \gets$ vector vacío
+    
+    \State // Seleccionar primer elemento aleatorio
+    \State $primer\_elemento \gets$ elemento aleatorio de $disponibles$
+    \State Añadir $primer\_elemento$ a $solucion$, eliminar de $disponibles$
+    
+    \While{tamaño de $solucion < m$ Y $evals < max\_evals$}
+        \State $mejor\_dispersion \gets \infty$
+        \State $mejor\_elemento \gets -1$
+        
+        \For{cada $candidato$ en $disponibles$}
+            \State $solucion\_temp \gets solucion$ con $candidato$ añadido
+            \State $dispersion \gets$ problema.fitness($solucion\_temp$)
+            \State $evals \gets evals + 1$
+            
+            \If{$dispersion < mejor\_dispersion$}
+                \State $mejor\_dispersion \gets dispersion$
+                \State $mejor\_elemento \gets candidato$
+            \EndIf
+            
+            \If{$evals \geq max\_evals$} \textbf{break} \EndIf
+        \EndFor
+        
+        \If{$evals \geq max\_evals$} \textbf{break} \EndIf
+        
+        \State Añadir $mejor\_elemento$ a $solucion$
+        \State Eliminar $mejor\_elemento$ de $disponibles$
+    \EndWhile
+    
+    \State Ordenar $solucion$
+    \State $fitness\_final \gets$ problema.fitness($solucion$)
+    \State \Return $\{solucion, fitness\_final\}$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+
+\subsection{Algoritmo de Búsqueda Local}
+
+El algoritmo de Búsqueda Local implementado utiliza la estrategia del primer mejor (first improvement), explorando el vecindario según dos modos: aleatorio (randLS) o heurístico (heurLS). Este último prioriza los elementos seleccionados según su contribución al valor de dispersión.
+
+\subsubsection{Inicialización y determinación del orden de exploración}
+
+\begin{algorithm}
+\caption{Algoritmo de Búsqueda Local del Primer Mejor - Parte 1}
+\begin{algorithmic}[1]
+\Function{OptimizarBL}{problema, max\_evals, modo\_exploracion}
+    \State $n \gets$ problema.getN()
+    \State $m \gets$ problema.getM()
+    
+    \State // Generar solución inicial aleatoria
+    \State $solucion \gets$ CrearSolucionAleatoria()
+    \State $fitness \gets$ problema.fitness($solucion$)
+    \State $info \gets$ problema.generarInfoFactorizacion($solucion$)
+    
+    \State $evals \gets 1$ \Comment{Contabilizar evaluación inicial}
+    \State $mejora \gets$ verdadero
+    
+    \State // Inicializar conjuntos de elementos seleccionados y no seleccionados
+    \State $seleccionados \gets$ conjunto con elementos de $solucion$
+    \State $no\_seleccionados \gets \{0, 1, ..., n-1\} - seleccionados$
+    
+    \While{$mejora$ Y $evals < max\_evals$}
+        \State $mejora \gets$ falso
+        
+        \If{$modo\_exploracion = heurLS$}
+            \State $contribuciones \gets$ vector vacío
+            
+            \For{$i \gets 0$ hasta $m-1$}
+                \State $elem \gets solucion[i]$
+                \State $fitness\_sin \gets$ problema.fitness\_factorizado($solucion, info, i, elem$)
+                \State $contribucion \gets fitness\_sin - fitness$
+                \State Añadir $(i, contribucion)$ a $contribuciones$
+            \EndFor
+            
+            \State Ordenar $contribuciones$ por contribución (menor primero)
+            \State $posiciones \gets$ extraer índices de posición de $contribuciones$
+        \Else
+            \State $posiciones \gets \{0, 1, ..., m-1\}$
+            \State Barajar $posiciones$ aleatoriamente
+        \EndIf
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+\subsubsection{Exploración del vecindario y selección del primer mejor vecino}
+
+\begin{algorithm}
+\caption{Algoritmo de Búsqueda Local del Primer Mejor - Parte 2}
+\begin{algorithmic}[1]
+\Function{OptimizarBL}{problema, max\_evals, modo\_exploracion} \textbf{(continuación)}
+    \While{$mejora$ Y $evals < max\_evals$}
+    \State (...código anterior)
+        \For{cada $pos$ en $posiciones$}
+            \If{$mejora$ O $evals \geq max\_evals$} \textbf{break} \EndIf
+            
+            \State $elem\_actual \gets solucion[pos]$
+            \State $candidatos \gets$ vector con elementos de $no\_seleccionados$
+            \State Barajar $candidatos$ aleatoriamente
+            
+            \For{cada $candidato$ en $candidatos$}
+                \If{$evals \geq max\_evals$} \textbf{break}\EndIf
+                
+                \State $nuevo\_fitness \gets$ problema.fitness\_factorizado($solucion, info, pos, candidato$)
+                \State $evals \gets evals + 1$
+                
+                \If{$nuevo\_fitness < fitness$}
+                    \State // Actualizar conjuntos
+                    \State Eliminar $elem\_actual$ de $seleccionados$
+                    \State Añadir $candidato$ a $seleccionados$
+                    \State Eliminar $candidato$ de $no\_seleccionados$
+                    \State Añadir $elem\_actual$ a $no\_seleccionados$
+                    
+                    \State // Actualizar información factorizada
+                    \State problema.actualizarInfoFactorizacion($info, solucion, pos, candidato$)
+                    
+                    \State // Actualizar solución
+                    \State $solucion[pos] \gets candidato$
+                    \State $fitness \gets nuevo\_fitness$
+                    
+                    \State $mejora \gets$ verdadero
+                    \State \textbf{break} \Comment{Primer mejor encontrado}
+                \EndIf
+            \EndFor
+        \EndFor
+    \EndWhile
+    
+    \State \Return $\{solucion, fitness\}$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+\section{Estructura del código y manual de usuario}
+
+El proyecto se ha implementado en C++ y estructurado de forma modular para facilitar su comprensión y mantenimiento. A continuación, se describe la organización del código y el proceso para compilarlo y ejecutarlo.
+
+\subsection{Estructura de directorios}
+
+\begin{itemize}
+    \item \textbf{inc/}: Contiene los archivos de cabecera (.h) con las declaraciones de clases y funciones.
+    \item \textbf{src/}: Contiene los archivos de implementación (.cpp) de las clases y algoritmos.
+    \item \textbf{datos\_MDD/}: Directorio con los ficheros de instancias del problema MDDP.
+    \item \textbf{build/}: Directorio generado automáticamente donde se almacenan los archivos compilados.
+    \item \textbf{common/}: Utilidades comunes como generadores de números aleatorios.
+\end{itemize}
+
+\subsection{Componentes principales}
+
+\begin{itemize}
+    \item \textbf{mddproblem.h/cpp}: Implementación de la clase que representa el problema MDDP y define la función objetivo y mecanismos de factorización.
+    \item \textbf{randomsearch.h/cpp}: Implementación del algoritmo de búsqueda aleatoria.
+    \item \textbf{greedy.h/cpp}: Implementación del algoritmo Greedy.
+    \item \textbf{localsearch.h/cpp}: Implementación del algoritmo de búsqueda local con sus variantes.
+    \item \textbf{main.cpp}: Punto de entrada principal del programa.
+    \item \textbf{run\_experiments.cpp}: Código para ejecutar todos los experimentos sobre el conjunto de instancias.
+    \item \textbf{test\_*.cpp}: Archivos para prueba individual de cada algoritmo.
+\end{itemize}
+
+\subsection{Compilación del proyecto}
+
+El proyecto utiliza CMake como sistema de construcción, lo que facilita su compilación en diferentes plataformas. Para compilar el proyecto, se deben seguir estos pasos:
+
+\begin{enumerate}
+    \item Asegurarse de tener instalado CMake (versión 3.10 o superior) y un compilador de C++ compatible con C++14.
+    \item Abrir una terminal en el directorio raíz del proyecto.
+    \item Crear y acceder al directorio de compilación:
+    \begin{verbatim}
+    mkdir -p build
+    cd build
+    \end{verbatim}
+    \item Generar los archivos de compilación:
+    \begin{verbatim}
+    cmake ..
+    \end{verbatim}
+    \item Compilar el proyecto:
+    \begin{verbatim}
+    make
+    \end{verbatim}
+\end{enumerate}
+
+Este proceso generará varios ejecutables en el directorio \texttt{build/}.
+
+\subsection{Ejecución de los programas}
+
+Una vez compilado el proyecto, se pueden ejecutar los siguientes programas:
+
+\begin{itemize}
+    \item \textbf{mddp\_main}: Programa principal que permite seleccionar el algoritmo a ejecutar.
+    \begin{verbatim}
+    ./mddp_main <archivo_instancia> <algoritmo> <semilla> [max_evals]
+    \end{verbatim}
+    
+    \item \textbf{run\_experiments}: Ejecuta todos los algoritmos sobre el conjunto de instancias y genera estadísticas.
+    \begin{verbatim}
+    ./run_experiments <directorio_instancias> <n_ejecuciones> <semillas>
+    \end{verbatim}
+    
+    \item \textbf{test\_random, test\_greedy, test\_localsearch}: Programas para probar cada algoritmo individualmente.
+    \begin{verbatim}
+    ./test_random <archivo_instancia> <semilla> [max_evals]
+    ./test_greedy <archivo_instancia> <semilla> [max_evals]
+    ./test_localsearch <archivo_instancia> <semilla> <modo> [max_evals]
+    \end{verbatim}
+    donde \texttt{modo} puede ser \texttt{rand} para exploración aleatoria o \texttt{heur} para exploración heurística.
+\end{itemize}
+
+\subsection{Ejemplo de ejecución}
+
+A continuación, se muestra un ejemplo de ejecución del algoritmo de búsqueda local con exploración heurística para la instancia GKD-b\_1\_n25\_m2:
+
+\begin{verbatim}
+$ cd build
+$ ./test_localsearch ../datos_MDD/GKD-b_1_n25_m2.txt 12345 heur 10000
+ 
+Problema: GKD-b_1_n25_m2.txt
+Algoritmo: Búsqueda Local (heurLS)
+Semilla: 12345
+Evaluaciones: 1842/10000
+Solución: [8, 15]
+Fitness: 13.25
+Tiempo: 0.023 segundos
+\end{verbatim}
+
+Para ejecutar todos los experimentos y generar las tablas estadísticas:
+
+\begin{verbatim}
+$ ./run_experiments ../datos_MDD/ 5 12345,67890,24680,13579,98765
+\end{verbatim}
+
+Este comando ejecutará los tres algoritmos (Random, Greedy y ambas versiones de BL) sobre todas las instancias en el directorio \texttt{datos\_MDD/}, realizando 5 ejecuciones con las semillas indicadas. Los resultados se guardarán en archivos CSV que se pueden importar fácilmente a herramientas como Excel para generar las tablas requeridas.
+
+\section{Resultados experimentales}
+
+En esta sección se presentan los resultados obtenidos de la ejecución de los algoritmos implementados sobre los 50 casos del problema MDDP. Se muestran tres tablas correspondientes a cada uno de los algoritmos: Greedy, Búsqueda Local con exploración aleatoria (LSrandom) y Búsqueda Local con exploración heurística (LSheur).
+
+\subsection{Resultados por algoritmo}
+
+\newpage
+\subsubsection{Resultados obtenidos por el Algoritmo Greedy en el MDD}
+
+\begin{table}[ht]
+\centering
+\footnotesize
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Caso} & \textbf{Desv} & \textbf{Tiempo} \\ \hline
+GKD-b\_1\_n25\_m2 & 0 & 4.61e-05 \\ \hline
+GKD-b\_2\_n25\_m2 & 0 & 4.74e-05 \\ \hline
+GKD-b\_3\_n25\_m2 & 0 & 4.52e-05 \\ \hline
+GKD-b\_4\_n25\_m2 & 0 & 5.92e-05 \\ \hline
+GKD-b\_5\_n25\_m2 & 0 & 4.60e-05 \\ \hline
+GKD-b\_6\_n25\_m7 & 426.36 & 0.00024 \\ \hline
+GKD-b\_7\_n25\_m7 & 189.66 & 0.00021 \\ \hline
+GKD-b\_8\_n25\_m7 & 264.56 & 0.00021 \\ \hline
+GKD-b\_9\_n25\_m7 & 320.03 & 0.00023 \\ \hline
+GKD-b\_10\_n25\_m7 & 359.59 & 0.00024 \\ \hline
+GKD-b\_11\_n50\_m5 & 1994.96 & 0.00026 \\ \hline
+GKD-b\_12\_n50\_m5 & 968.95 & 0.00025 \\ \hline
+GKD-b\_13\_n50\_m5 & 830.04 & 0.00024 \\ \hline
+GKD-b\_14\_n50\_m5 & 1510.09 & 0.00023 \\ \hline
+GKD-b\_15\_n50\_m5 & 1824.35 & 0.00025 \\ \hline
+GKD-b\_16\_n50\_m15 & 218.42 & 0.00180 \\ \hline
+GKD-b\_17\_n50\_m15 & 129.10 & 0.00188 \\ \hline
+GKD-b\_18\_n50\_m15 & 311.69 & 0.00185 \\ \hline
+GKD-b\_19\_n50\_m15 & 240.68 & 0.00180 \\ \hline
+GKD-b\_20\_n50\_m15 & 205.69 & 0.00181 \\ \hline
+GKD-b\_21\_n100\_m10 & 570.81 & 0.00171 \\ \hline
+GKD-b\_22\_n100\_m10 & 365.80 & 0.00171 \\ \hline
+GKD-b\_23\_n100\_m10 & 248.50 & 0.00179 \\ \hline
+GKD-b\_24\_n100\_m10 & 751.02 & 0.00176 \\ \hline
+GKD-b\_25\_n100\_m10 & 235.35 & 0.00162 \\ \hline
+GKD-b\_26\_n100\_m30 & 172.64 & 0.02036 \\ \hline
+GKD-b\_27\_n100\_m30 & 330.81 & 0.01952 \\ \hline
+GKD-b\_28\_n100\_m30 & 511.34 & 0.02000 \\ \hline
+GKD-b\_29\_n100\_m30 & 177.00 & 0.01959 \\ \hline
+GKD-b\_30\_n100\_m30 & 208.07 & 0.01999 \\ \hline
+GKD-b\_31\_n125\_m12 & 493.18 & 0.00313 \\ \hline
+GKD-b\_32\_n125\_m12 & 331.89 & 0.00290 \\ \hline
+GKD-b\_33\_n125\_m12 & 426.97 & 0.00298 \\ \hline
+GKD-b\_34\_n125\_m12 & 285.51 & 0.00324 \\ \hline
+GKD-b\_35\_n125\_m12 & 311.10 & 0.00294 \\ \hline
+GKD-b\_36\_n125\_m37 & 203.14 & 0.04308 \\ \hline
+GKD-b\_37\_n125\_m37 & 73.80 & 0.04268 \\ \hline
+GKD-b\_38\_n125\_m37 & 218.00 & 0.04352 \\ \hline
+GKD-b\_39\_n125\_m37 & 184.82 & 0.04360 \\ \hline
+GKD-b\_40\_n125\_m37 & 118.78 & 0.04264 \\ \hline
+GKD-b\_41\_n150\_m15 & 220.59 & 0.00589 \\ \hline
+GKD-b\_42\_n150\_m15 & 304.22 & 0.00610 \\ \hline
+GKD-b\_43\_n150\_m15 & 597.36 & 0.00621 \\ \hline
+GKD-b\_44\_n150\_m15 & 249.94 & 0.00619 \\ \hline
+GKD-b\_45\_n150\_m15 & 239.29 & 0.00570 \\ \hline
+GKD-b\_46\_n150\_m45 & 138.46 & 0.08884 \\ \hline
+GKD-b\_47\_n150\_m45 & 117.80 & 0.09024 \\ \hline
+GKD-b\_48\_n150\_m45 & 154.71 & 0.08983 \\ \hline
+GKD-b\_49\_n150\_m45 & 206.10 & 0.08991 \\ \hline
+GKD-b\_50\_n150\_m45 & 103.72 & 0.08941 \\ \hline
+\end{tabular}
+\end{table}
+
+\newpage
+\subsubsection{Resultados obtenidos por el Algoritmo LSrandom en el MDD}
+
+\begin{table}[ht]
+\centering
+\footnotesize
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Caso} & \textbf{Desv} & \textbf{Tiempo} \\ \hline
+GKD-b\_1\_n25\_m2 & 0 & 5.07e-05 \\ \hline
+GKD-b\_2\_n25\_m2 & 0 & 5.03e-05 \\ \hline
+GKD-b\_3\_n25\_m2 & 0 & 6.36e-05 \\ \hline
+GKD-b\_4\_n25\_m2 & 0 & 5.10e-05 \\ \hline
+GKD-b\_5\_n25\_m2 & 0 & 5.33e-05 \\ \hline
+GKD-b\_6\_n25\_m7 & 141.82 & 0.00042 \\ \hline
+GKD-b\_7\_n25\_m7 & 120.75 & 0.00040 \\ \hline
+GKD-b\_8\_n25\_m7 & 93.80 & 0.00042 \\ \hline
+GKD-b\_9\_n25\_m7 & 136.75 & 0.00036 \\ \hline
+GKD-b\_10\_n25\_m7 & 63.26 & 0.00050 \\ \hline
+GKD-b\_11\_n50\_m5 & 425.40 & 0.00056 \\ \hline
+GKD-b\_12\_n50\_m5 & 646.43 & 0.00038 \\ \hline
+GKD-b\_13\_n50\_m5 & 331.75 & 0.00055 \\ \hline
+GKD-b\_14\_n50\_m5 & 724.04 & 0.00045 \\ \hline
+GKD-b\_15\_n50\_m5 & 544.16 & 0.00037 \\ \hline
+GKD-b\_16\_n50\_m15 & 219.92 & 0.00331 \\ \hline
+GKD-b\_17\_n50\_m15 & 88.74 & 0.00357 \\ \hline
+GKD-b\_18\_n50\_m15 & 184.99 & 0.00250 \\ \hline
+GKD-b\_19\_n50\_m15 & 165.19 & 0.00287 \\ \hline
+GKD-b\_20\_n50\_m15 & 205.46 & 0.00236 \\ \hline
+GKD-b\_21\_n100\_m10 & 216.77 & 0.00318 \\ \hline
+GKD-b\_22\_n100\_m10 & 251.99 & 0.00287 \\ \hline
+GKD-b\_23\_n100\_m10 & 240.08 & 0.00245 \\ \hline
+GKD-b\_24\_n100\_m10 & 298.63 & 0.00258 \\ \hline
+GKD-b\_25\_n100\_m10 & 140.58 & 0.00384 \\ \hline
+GKD-b\_26\_n100\_m30 & 126.86 & 0.02488 \\ \hline
+GKD-b\_27\_n100\_m30 & 170.95 & 0.02750 \\ \hline
+GKD-b\_28\_n100\_m30 & 155.70 & 0.02900 \\ \hline
+GKD-b\_29\_n100\_m30 & 133.89 & 0.02703 \\ \hline
+GKD-b\_30\_n100\_m30 & 159.32 & 0.02426 \\ \hline
+GKD-b\_31\_n125\_m12 & 357.26 & 0.00985 \\ \hline
+GKD-b\_32\_n125\_m12 & 131.56 & 0.00576 \\ \hline
+GKD-b\_33\_n125\_m12 & 165.04 & 0.00779 \\ \hline
+GKD-b\_34\_n125\_m12 & 151.84 & 0.00672 \\ \hline
+GKD-b\_35\_n125\_m12 & 187.45 & 0.00513 \\ \hline
+GKD-b\_36\_n125\_m37 & 144.26 & 0.07322 \\ \hline
+GKD-b\_37\_n125\_m37 & 134.53 & 0.04911 \\ \hline
+GKD-b\_38\_n125\_m37 & 191.68 & 0.04675 \\ \hline
+GKD-b\_39\_n125\_m37 & 113.25 & 0.05203 \\ \hline
+GKD-b\_40\_n125\_m37 & 134.20 & 0.06460 \\ \hline
+GKD-b\_41\_n150\_m15 & 172.60 & 0.01295 \\ \hline
+GKD-b\_42\_n150\_m15 & 169.60 & 0.01040 \\ \hline
+GKD-b\_43\_n150\_m15 & 206.97 & 0.01392 \\ \hline
+GKD-b\_44\_n150\_m15 & 162.69 & 0.01150 \\ \hline
+GKD-b\_45\_n150\_m15 & 128.39 & 0.00935 \\ \hline
+GKD-b\_46\_n150\_m45 & 155.02 & 0.09665 \\ \hline
+GKD-b\_47\_n150\_m45 & 96.11 & 0.10936 \\ \hline
+GKD-b\_48\_n150\_m45 & 82.88 & 0.14974 \\ \hline
+GKD-b\_49\_n150\_m45 & 125.81 & 0.14308 \\ \hline
+GKD-b\_50\_n150\_m45 & 111.18 & 0.12805 \\ \hline
+\end{tabular}
+\end{table}
+
+\newpage
+\subsubsection{Resultados obtenidos por el Algoritmo LSheur en el MDD}
+
+\begin{table}[ht]
+\centering
+\footnotesize
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Caso} & \textbf{Desv} & \textbf{Tiempo} \\ \hline
+GKD-b\_1\_n25\_m2 & 0 & 5.79e-05 \\ \hline
+GKD-b\_2\_n25\_m2 & 0 & 5.09e-05 \\ \hline
+GKD-b\_3\_n25\_m2 & 0 & 5.31e-05 \\ \hline
+GKD-b\_4\_n25\_m2 & 0 & 5.02e-05 \\ \hline
+GKD-b\_5\_n25\_m2 & 0 & 5.04e-05 \\ \hline
+GKD-b\_6\_n25\_m7 & 188.57 & 0.00040 \\ \hline
+GKD-b\_7\_n25\_m7 & 126.04 & 0.00039 \\ \hline
+GKD-b\_8\_n25\_m7 & 115.65 & 0.00060 \\ \hline
+GKD-b\_9\_n25\_m7 & 84.74 & 0.00075 \\ \hline
+GKD-b\_10\_n25\_m7 & 73.24 & 0.00053 \\ \hline
+GKD-b\_11\_n50\_m5 & 763.73 & 0.00053 \\ \hline
+GKD-b\_12\_n50\_m5 & 720.06 & 0.00057 \\ \hline
+GKD-b\_13\_n50\_m5 & 571.87 & 0.00050 \\ \hline
+GKD-b\_14\_n50\_m5 & 811.18 & 0.00049 \\ \hline
+GKD-b\_15\_n50\_m5 & 448.24 & 0.00041 \\ \hline
+GKD-b\_16\_n50\_m15 & 219.09 & 0.00597 \\ \hline
+GKD-b\_17\_n50\_m15 & 73.30 & 0.00687 \\ \hline
+GKD-b\_18\_n50\_m15 & 97.63 & 0.00885 \\ \hline
+GKD-b\_19\_n50\_m15 & 134.20 & 0.00502 \\ \hline
+GKD-b\_20\_n50\_m15 & 109.43 & 0.00588 \\ \hline
+GKD-b\_21\_n100\_m10 & 314.98 & 0.00476 \\ \hline
+GKD-b\_22\_n100\_m10 & 355.05 & 0.00373 \\ \hline
+GKD-b\_23\_n100\_m10 & 161.09 & 0.00462 \\ \hline
+GKD-b\_24\_n100\_m10 & 365.08 & 0.00376 \\ \hline
+GKD-b\_25\_n100\_m10 & 143.21 & 0.00461 \\ \hline
+GKD-b\_26\_n100\_m30 & 125.36 & 0.07678 \\ \hline
+GKD-b\_27\_n100\_m30 & 171.03 & 0.07891 \\ \hline
+GKD-b\_28\_n100\_m30 & 216.22 & 0.07632 \\ \hline
+GKD-b\_29\_n100\_m30 & 96.56 & 0.07088 \\ \hline
+GKD-b\_30\_n100\_m30 & 165.44 & 0.06138 \\ \hline
+GKD-b\_31\_n125\_m12 & 233.92 & 0.01491 \\ \hline
+GKD-b\_32\_n125\_m12 & 180.52 & 0.00822 \\ \hline
+GKD-b\_33\_n125\_m12 & 136.49 & 0.00879 \\ \hline
+GKD-b\_34\_n125\_m12 & 160.29 & 0.01023 \\ \hline
+GKD-b\_35\_n125\_m12 & 186.36 & 0.01346 \\ \hline
+GKD-b\_36\_n125\_m37 & 113.03 & 0.13308 \\ \hline
+GKD-b\_37\_n125\_m37 & 139.07 & 0.15237 \\ \hline
+GKD-b\_38\_n125\_m37 & 140.14 & 0.15692 \\ \hline
+GKD-b\_39\_n125\_m37 & 145.15 & 0.10897 \\ \hline
+GKD-b\_40\_n125\_m37 & 156.33 & 0.10222 \\ \hline
+GKD-b\_41\_n150\_m15 & 185.57 & 0.02087 \\ \hline
+GKD-b\_42\_n150\_m15 & 250.30 & 0.02327 \\ \hline
+GKD-b\_43\_n150\_m15 & 165.72 & 0.01309 \\ \hline
+GKD-b\_44\_n150\_m15 & 235.03 & 0.02065 \\ \hline
+GKD-b\_45\_n150\_m15 & 153.46 & 0.01660 \\ \hline
+GKD-b\_46\_n150\_m45 & 121.80 & 0.23819 \\ \hline
+GKD-b\_47\_n150\_m45 & 85.96 & 0.25197 \\ \hline
+GKD-b\_48\_n150\_m45 & 104.22 & 0.28723 \\ \hline
+GKD-b\_49\_n150\_m45 & 128.89 & 0.25813 \\ \hline
+GKD-b\_50\_n150\_m45 & 151.46 & 0.24663 \\ \hline
+\end{tabular}
+\end{table}
 
 \end{document}
