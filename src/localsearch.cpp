@@ -7,7 +7,6 @@
 #include <utility>
 #include <random.hpp>
 #include <unordered_set>
-#include <limits>
 
 using namespace std;
 using Random = effolkronium::random_static;
@@ -52,106 +51,80 @@ ResultMH LocalSearch::optimize(Problem *problem, int maxevals) {
     while (improved && evals < maxevals) {
         improved = false;
         
+        // En modo heurLS, ordenar elementos por su contribución al fitness
+        vector<pair<int, float>> contributions;
+        
         if (mode == heurLS) {
-            // Estrategia para heurLS: evaluar todos los posibles intercambios y elegir el mejor
-            tFitness best_fitness = current_fitness;
-            int best_sel = -1;
-            int best_nonsel = -1;
-            int best_pos = -1;
-            
-            // Para cada elemento seleccionado
-            for (int pos = 0; pos < m; pos++) {
-                int sel_elem = solution[pos];
-                
-                // Para cada elemento no seleccionado
-                for (int nonsel : not_selected) {
-                    // Evaluar el intercambio
-                    tFitness new_fitness = problem->fitness(solution, info, pos, nonsel);
-                    evals++;
-                    
-                    // Actualizar el mejor intercambio si mejora
-                    if (new_fitness < best_fitness) {
-                        best_fitness = new_fitness;
-                        best_sel = sel_elem;
-                        best_nonsel = nonsel;
-                        best_pos = pos;
-                    }
-                    
-                    // Si se alcanza el límite de evaluaciones, interrumpir
-                    if (evals >= maxevals) break;
-                }
-                
-                if (evals >= maxevals) break;
+            // Probar el efecto de reemplazar cada elemento seleccionado
+            for (int i = 0; i < m; i++) {
+                int sel = solution[i];
+                // Evaluar la contribución eliminando este elemento
+                tFitness fitness_without = problem->fitness(solution, info, i, sel);
+                float contribution = fitness_without - current_fitness;
+                contributions.push_back(make_pair(i, contribution));
             }
             
-            // Si se encontró un mejor intercambio, aplicarlo
-            if (best_sel != -1 && best_fitness < current_fitness) {
-                // Actualizar conjuntos
-                selected.erase(best_sel);
-                selected.insert(best_nonsel);
-                not_selected.erase(best_nonsel);
-                not_selected.insert(best_sel);
-                
-                // Actualizar información factorizada ANTES de actualizar la solución
-                problem->updateSolutionFactoringInfo(info, solution, best_pos, best_nonsel);
-                
-                // Actualizar solución DESPUÉS de la información factorizada
-                solution[best_pos] = best_nonsel;
-                
-                // Actualizar fitness
-                current_fitness = best_fitness;
-                
-                // Indicar que hubo mejora
-                improved = true;
+            // Ordenar por contribución (menor primero)
+            sort(contributions.begin(), contributions.end(), 
+                [](const pair<int, float>& a, const pair<int, float>& b) {
+                    return a.second < b.second;
+                });
+        }
+        
+        // Vector de posiciones a explorar (ordenado según el modo)
+        vector<int> positions;
+        
+        if (mode == heurLS) {
+            // Usar orden según contribución
+            for (auto& pair : contributions) {
+                positions.push_back(pair.first);
             }
         } else {
-            // Modo randLS: estrategia original de primer mejor (no cambia)
-            // Vector de posiciones a explorar (orden aleatorio)
-            vector<int> positions;
+            // Orden aleatorio para randLS
             for (int i = 0; i < m; i++) {
                 positions.push_back(i);
             }
             Random::shuffle(positions.begin(), positions.end());
+        }
+        
+        // Para cada posición a explorar
+        for (int pos : positions) {
+            if (improved || evals >= maxevals) break;
             
-            // Para cada posición a explorar
-            for (int pos : positions) {
-                if (improved || evals >= maxevals) break;
+            int current_elem = solution[pos];
+            
+            // Vector de elementos no seleccionados (barajado)
+            vector<int> candidates(not_selected.begin(), not_selected.end());
+            Random::shuffle(candidates.begin(), candidates.end());
+            
+            // Probar intercambios
+            for (int candidate : candidates) {
+                if (evals >= maxevals) break;
                 
-                int current_elem = solution[pos];
+                // Evaluar el intercambio usando factorización
+                tFitness new_fitness = problem->fitness(solution, info, pos, candidate);
+                evals++;
                 
-                // Vector de elementos no seleccionados (barajado)
-                vector<int> candidates(not_selected.begin(), not_selected.end());
-                Random::shuffle(candidates.begin(), candidates.end());
-                
-                // Probar intercambios
-                for (int candidate : candidates) {
-                    if (evals >= maxevals) break;
+                // Si hay mejora, aplicar el intercambio
+                if (new_fitness < current_fitness) {
+                    // Actualizar conjuntos
+                    selected.erase(current_elem);
+                    selected.insert(candidate);
+                    not_selected.erase(candidate);
+                    not_selected.insert(current_elem);
                     
-                    // Evaluar el intercambio usando factorización
-                    tFitness new_fitness = problem->fitness(solution, info, pos, candidate);
-                    evals++;
+                    // Actualizar información factorizada
+                    problem->updateSolutionFactoringInfo(info, solution, pos, candidate);
                     
-                    // Si hay mejora, aplicar el intercambio
-                    if (new_fitness < current_fitness) {
-                        // Actualizar conjuntos
-                        selected.erase(current_elem);
-                        selected.insert(candidate);
-                        not_selected.erase(candidate);
-                        not_selected.insert(current_elem);
-                        
-                        // Actualizar información factorizada ANTES de actualizar la solución
-                        problem->updateSolutionFactoringInfo(info, solution, pos, candidate);
-                        
-                        // Actualizar solución DESPUÉS de la información factorizada
-                        solution[pos] = candidate;
-                        
-                        // Actualizar fitness
-                        current_fitness = new_fitness;
-                        
-                        // Marcar mejora y salir (primer mejor)
-                        improved = true;
-                        break;
-                    }
+                    // Actualizar solución
+                    solution[pos] = candidate;
+                    
+                    // Actualizar fitness
+                    current_fitness = new_fitness;
+                    
+                    // Marcar mejora y salir (primer mejor)
+                    improved = true;
+                    break;
                 }
             }
         }
