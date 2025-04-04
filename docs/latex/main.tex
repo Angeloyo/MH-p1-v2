@@ -1,5 +1,11 @@
 \documentclass{article}
-\usepackage{graphicx} % Required for inserting images
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{parskip}
+\usepackage{lipsum} % Para texto de ejemplo
 
 \title{Metaheurísticas: Práctica 1}
 \author{Ángel Sánchez Guerrero}
@@ -22,12 +28,11 @@
     {\Large Problema de Mínima Dispersion Diferencial (MDDP)} \\[3em]
 
     {\large Curso Académico: \textbf{2024/2025}} \\[3em]
-    
+
     {\large \textbf{Horario de prácticas:} Jueves 15:30 – 17:30} \\
     {\large \textbf{Email:} angel.sanchez01@correo.ugr.es} \\
     {\large \textbf{Nombre:} Ángel Sánchez Guerrero} \\
     {\large \textbf{DNI:} 12345678A} \\
-    
 \end{center}
 
 \vfill
@@ -37,5 +42,37 @@
     \includegraphics[width=4cm]{etsiit_logo.png}
 \end{center}
 
-\end{document}
+\newpage
+\tableofcontents
+\newpage
 
+\section{Descripción y formulación del problema}
+
+El Problema de la Mínima Dispersión Diferencial (Minimum Differential Dispersion Problem, MDDP) es un problema de optimización combinatoria NP-completo. Su formulación es aparentemente sencilla, pero su resolución resulta computacionalmente compleja incluso para instancias de tamaño moderado, superando la hora de cómputo para casos de tamaño 50.
+
+El problema consiste en seleccionar un subconjunto \(M\) de \(m\) elementos de un conjunto inicial \(S\) con \(n\) elementos (donde \(n > m\)), de forma que se minimice la dispersión entre los elementos escogidos. Para cada par de elementos, se conoce la distancia entre ellos, representada en una matriz \(D = (d_{ij})\) de dimensión \(n \times n\).
+
+En el caso específico del MDDP, la medida de dispersión se calcula de la siguiente manera:
+\begin{enumerate}
+    \item Para cada elemento \(v\) seleccionado, se calcula su valor \(\Delta(v)\) como la suma de las distancias de este elemento al resto de elementos seleccionados.
+    \item La dispersión de una solución, denotada como \(diff(S)\), se define como la diferencia entre los valores extremos de \(\Delta\):
+    \[diff(S) = \max\{\Delta(v) : v \in S\} - \min\{\Delta(v) : v \in S\}\]
+    \item El objetivo es minimizar esta medida de dispersión:
+    \[\min diff(S)\]
+\end{enumerate}
+
+Formalmente, el problema se puede formular mediante la siguiente expresión:
+\[\text{Minimizar } \max_{x_i \in M} \left( \sum_{j \in M} d_{ij} \right) - \min_{x_i \in M} \left( \sum_{j \in M} d_{ij} \right) \text{ con } M \subset S, |M| = m\]
+
+Este problema tiene múltiples aplicaciones prácticas, como:
+\begin{itemize}
+    \item Ubicación óptima de instalaciones públicas (como farmacias, hospitales o estaciones de servicio)
+    \item Selección de grupos homogéneos en entornos corporativos o educativos
+    \item Identificación de redes densas en análisis de grafos
+    \item Reparto equitativo de recursos
+    \item Problemas de flujo en redes de transporte o comunicación
+\end{itemize}
+
+Debido a su complejidad computacional, resulta necesario emplear métodos aproximados para su resolución, como algoritmos voraces (greedy), búsqueda local o metaheurísticas más avanzadas, que permitan obtener soluciones de calidad en un tiempo razonable.
+
+\end{document}
