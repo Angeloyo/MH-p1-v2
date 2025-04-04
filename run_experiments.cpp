@@ -62,7 +62,7 @@ float calculate_desv(float obtained, float best_known) {
     if (best_known == 0) {
         return (obtained == 0) ? 0.0f : 100.0f;
     }
-    return 100.0f * (obtained - best_known) / obtained;
+    return 100.0f * (obtained - best_known) / best_known;
 }
 
 // Función para ejecutar un algoritmo y obtener resultado con tiempo
@@ -447,6 +447,7 @@ int main(int argc, char* argv[]) {
         case_filename << "_n" << n << "_m" << m << ".txt";
         string filename = data_dir + case_filename.str();
         string case_name = case_filename.str();
+        case_name = case_name.substr(0, case_name.length() - 4); // Eliminar la extensión .txt
         
         // Obtener mejor coste conocido para este caso
         float best_known = best_costs[case_name];
