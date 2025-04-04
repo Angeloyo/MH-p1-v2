@@ -379,22 +379,49 @@ El proyecto se ha implementado en C++ y estructurado de forma modular para facil
 
 \begin{itemize}
     \item \textbf{inc/}: Contiene los archivos de cabecera (.h) con las declaraciones de clases y funciones.
+        \begin{itemize}
+            \item \textbf{mddproblem.h}: Define la clase para el problema MDDP.
+            \item \textbf{randomsearch.h}: Implementa el algoritmo aleatorio.
+            \item \textbf{greedy.h}: Implementa el algoritmo Greedy.
+            \item \textbf{localsearch.h}: Define la búsqueda local y sus variantes.
+        \end{itemize}
     \item \textbf{src/}: Contiene los archivos de implementación (.cpp) de las clases y algoritmos.
-    \item \textbf{datos\_MDD/}: Directorio con los ficheros de instancias del problema MDDP.
-    \item \textbf{build/}: Directorio generado automáticamente donde se almacenan los archivos compilados.
-    \item \textbf{common/}: Utilidades comunes como generadores de números aleatorios.
+    \item \textbf{datos\_MDD/}: Contiene los 50 ficheros de instancias del problema MDDP con diferentes valores de n y m.
+    \item \textbf{build/}: Directorio generado tras la compilación donde se almacenan los ejecutables.
+    \item \textbf{common/}: Incluye utilidades comunes para todos los algoritmos:
+        \begin{itemize}
+            \item \textbf{random.hpp}: Implementación del generador de números aleatorios.
+            \item \textbf{problem.h}: Clase base abstracta para problemas de optimización.
+            \item \textbf{solution.h}: Definición del tipo de solución.
+            \item \textbf{mh.h}: Clase base para metaheurísticas.
+        \end{itemize}
 \end{itemize}
 
 \subsection{Componentes principales}
 
+El proyecto se organiza en las siguientes componentes clave:
+
 \begin{itemize}
-    \item \textbf{mddproblem.h/cpp}: Implementación de la clase que representa el problema MDDP y define la función objetivo y mecanismos de factorización.
-    \item \textbf{randomsearch.h/cpp}: Implementación del algoritmo de búsqueda aleatoria.
-    \item \textbf{greedy.h/cpp}: Implementación del algoritmo Greedy.
-    \item \textbf{localsearch.h/cpp}: Implementación del algoritmo de búsqueda local con sus variantes.
-    \item \textbf{main.cpp}: Punto de entrada principal del programa.
-    \item \textbf{run\_experiments.cpp}: Código para ejecutar todos los experimentos sobre el conjunto de instancias.
-    \item \textbf{test\_*.cpp}: Archivos para prueba individual de cada algoritmo.
+    \item \textbf{Representación del Problema}:
+        \begin{itemize}
+            \item \textbf{mddproblem.h/cpp}: Implementa la clase MDDProblem que encapsula la lógica del problema, incluyendo la carga de instancias desde archivos, el cálculo de la función objetivo y los mecanismos de factorización para optimizar la evaluación de soluciones vecinas.
+        \end{itemize}
+    
+    \item \textbf{Algoritmos de resolución}:
+        \begin{itemize}
+            \item \textbf{randomsearch.h/cpp}: Implementa la búsqueda aleatoria que genera soluciones aleatorias hasta agotar el número de evaluaciones.
+            \item \textbf{greedy.h/cpp}: Implementa el algoritmo constructivo Greedy que añade elementos uno a uno seleccionando el mejor candidato en cada paso.
+            \item \textbf{localsearch.h/cpp}: Implementa el algoritmo de búsqueda local con dos modos de exploración del vecindario: aleatorio (randLS) y heurístico (heurLS).
+        \end{itemize}
+        
+    \item \textbf{Programas ejecutables}:
+        \begin{itemize}
+            \item \textbf{test\_random.cpp}: Programa para probar específicamente el algoritmo aleatorio.
+            \item \textbf{test\_greedy.cpp}: Programa para probar específicamente el algoritmo Greedy.
+            \item \textbf{test\_localsearch.cpp}: Programa para probar específicamente el algoritmo de búsqueda local.
+            \item \textbf{test\_all.cpp}: Programa para probar todos los algoritmos sobre una instancia.
+            \item \textbf{run\_experiments.cpp}: Programa principal que ejecuta todos los experimentos sobre las 50 instancias del problema, calculando estadísticas y guardando resultados en archivos CSV.
+        \end{itemize}
 \end{itemize}
 
 \subsection{Compilación del proyecto}
@@ -402,7 +429,7 @@ El proyecto se ha implementado en C++ y estructurado de forma modular para facil
 El proyecto utiliza CMake como sistema de construcción, lo que facilita su compilación en diferentes plataformas. Para compilar el proyecto, se deben seguir estos pasos:
 
 \begin{enumerate}
-    \item Asegurarse de tener instalado CMake (versión 3.10 o superior) y un compilador de C++ compatible con C++14.
+    \item Asegurarse de tener instalado CMake (versión 3.31 o superior) y un compilador de C++ compatible con C++14.
     \item Abrir una terminal en el directorio raíz del proyecto.
     \item Crear y acceder al directorio de compilación:
     \begin{verbatim}
@@ -419,64 +446,115 @@ El proyecto utiliza CMake como sistema de construcción, lo que facilita su comp
     \end{verbatim}
 \end{enumerate}
 
-Este proceso generará varios ejecutables en el directorio \texttt{build/}.
+Este proceso generará varios ejecutables en el directorio \texttt{build/}, incluyendo \texttt{main}, \texttt{test\_random}, \texttt{test\_greedy}, \texttt{test\_localsearch}, \texttt{test\_all} y \texttt{run\_experiments}.
 
 \subsection{Ejecución de los programas}
 
 Una vez compilado el proyecto, se pueden ejecutar los siguientes programas:
 
 \begin{itemize}
-    \item \textbf{mddp\_main}: Programa principal que permite seleccionar el algoritmo a ejecutar.
+    \item \textbf{test\_random}: Ejecuta el algoritmo aleatorio sobre una instancia específica.
     \begin{verbatim}
-    ./mddp_main <archivo_instancia> <algoritmo> <semilla> [max_evals]
+    ./test_random <archivo_instancia> [semilla]
     \end{verbatim}
     
-    \item \textbf{run\_experiments}: Ejecuta todos los algoritmos sobre el conjunto de instancias y genera estadísticas.
+    \item \textbf{test\_greedy}: Ejecuta el algoritmo Greedy sobre una instancia específica.
     \begin{verbatim}
-    ./run_experiments <directorio_instancias> <n_ejecuciones> <semillas>
+    ./test_greedy <archivo_instancia> [semilla]
     \end{verbatim}
     
-    \item \textbf{test\_random, test\_greedy, test\_localsearch}: Programas para probar cada algoritmo individualmente.
+    \item \textbf{test\_localsearch}: Ejecuta ambas versiones del algoritmo de búsqueda local (randLS y heurLS) sobre una instancia y compara sus resultados.
     \begin{verbatim}
-    ./test_random <archivo_instancia> <semilla> [max_evals]
-    ./test_greedy <archivo_instancia> <semilla> [max_evals]
-    ./test_localsearch <archivo_instancia> <semilla> <modo> [max_evals]
+    ./test_localsearch <archivo_instancia> [semilla]
     \end{verbatim}
-    donde \texttt{modo} puede ser \texttt{rand} para exploración aleatoria o \texttt{heur} para exploración heurística.
+    
+    \item \textbf{test\_all}: Ejecuta todos los algoritmos sobre una instancia específica para comparar resultados.
+    \begin{verbatim}
+    ./test_all <archivo_instancia> [semilla]
+    \end{verbatim}
+    
+    \item \textbf{run\_experiments}: Ejecuta todos los experimentos sobre el conjunto completo de instancias y genera archivos CSV con los resultados.
+    \begin{verbatim}
+    ./run_experiments <directorio_instancias>
+    \end{verbatim}
+    Este programa utiliza automáticamente las 5 semillas predefinidas (1234, 5678, 9012, 3456, 7890) y genera cuatro archivos de resultados:
+    \begin{itemize}
+        \item \texttt{results\_detailed.csv}: Resultados detallados de cada ejecución.
+        \item \texttt{results\_by\_case.csv}: Resultados promediados por caso.
+        \item \texttt{results\_by\_size.csv}: Resultados agrupados por tamaño de instancia.
+        \item \texttt{results\_global.csv}: Resultados globales por algoritmo.
+    \end{itemize}
 \end{itemize}
+
+En todos los programas, si no se especifica una semilla, se utiliza el valor por defecto 42.
 
 \subsection{Ejemplo de ejecución}
 
-A continuación, se muestra un ejemplo de ejecución del algoritmo de búsqueda local con exploración heurística para la instancia GKD-b\_1\_n25\_m2:
+A continuación, se muestra un ejemplo real de ejecución del algoritmo de búsqueda local para la instancia GKD-b\_10\_n25\_m7:
 
 \begin{verbatim}
-$ cd build
-$ ./test_localsearch ../datos_MDD/GKD-b_1_n25_m2.txt 12345 heur 10000
- 
-Problema: GKD-b_1_n25_m2.txt
-Algoritmo: Búsqueda Local (heurLS)
-Semilla: 12345
-Evaluaciones: 1842/10000
-Solución: [8, 15]
-Fitness: 13.25
-Tiempo: 0.023 segundos
+$ ./build/test_localsearch datos_MDD/GKD-b_10_n25_m7.txt 222
+Ejecutando búsqueda local con exploración ALEATORIA (randLS)...
+Fitness (randLS): 47.9688
+Evaluaciones: 208
+Tiempo de ejecución: 0.000267862 segundos
+Elementos seleccionados: 19 12 16 17 5 6 2 
+
+Ejecutando búsqueda local con exploración HEURÍSTICA (heurLS)...
+Fitness (heurLS): 39.0557
+Evaluaciones: 181
+Tiempo de ejecución: 0.000349462 segundos
+Elementos seleccionados: 5 1 16 17 9 6 12 
+\end{verbatim}
+
+Para ejecutar todos los algoritmos sobre una misma instancia y compararlos:
+
+\begin{verbatim}
+$ ./test_all ../datos_MDD/GKD-b_10_n25_m7.txt 222
 \end{verbatim}
 
 Para ejecutar todos los experimentos y generar las tablas estadísticas:
 
 \begin{verbatim}
-$ ./run_experiments ../datos_MDD/ 5 12345,67890,24680,13579,98765
+$ ./run_experiments ../datos_MDD/
 \end{verbatim}
 
-Este comando ejecutará los tres algoritmos (Random, Greedy y ambas versiones de BL) sobre todas las instancias en el directorio \texttt{datos\_MDD/}, realizando 5 ejecuciones con las semillas indicadas. Los resultados se guardarán en archivos CSV que se pueden importar fácilmente a herramientas como Excel para generar las tablas requeridas.
+El programa procesará las 50 instancias con todos los algoritmos y generará los archivos CSV con los resultados. Durante la ejecución, mostrará información sobre el progreso y los resultados intermedios. Una vez finalizado, los archivos CSV pueden importarse a herramientas como Excel o R para generar gráficos y realizar análisis adicionales.
 
 \section{Resultados experimentales}
 
 En esta sección se presentan los resultados obtenidos de la ejecución de los algoritmos implementados sobre los 50 casos del problema MDDP. Se muestran tres tablas correspondientes a cada uno de los algoritmos: Greedy, Búsqueda Local con exploración aleatoria (LSrandom) y Búsqueda Local con exploración heurística (LSheur).
 
+\subsection{Configuración experimental}
+
+Para garantizar la reproducibilidad de los resultados y seguir las indicaciones del guión de prácticas, se ha utilizado la siguiente configuración experimental:
+
+\begin{itemize}
+    \item \textbf{Semillas utilizadas}: Se han utilizado las siguientes semillas para el generador de números aleatorios:
+    \begin{itemize}
+        \item Semilla 1: 1234
+        \item Semilla 2: 5678
+        \item Semilla 3: 9012
+        \item Semilla 4: 3456
+        \item Semilla 5: 7890
+    \end{itemize}
+    
+    Estas semillas se utilizan de manera diferente según el algoritmo:
+    \begin{itemize}
+        \item \textbf{RandomSearch}: Utiliza únicamente la primera semilla (1234).
+        \item \textbf{GreedySearch}: También utiliza solo la primera semilla (1234).
+        \item \textbf{Búsqueda Local (RandLS y HeurLS)}: Utilizan las 5 semillas diferentes para realizar 5 ejecuciones independientes por cada instancia.
+    \end{itemize}
+    
+    \item \textbf{Número máximo de evaluaciones}: Para los algoritmos de búsqueda local y aleatorio, se estableció un límite de 100000 evaluaciones de la función objetivo. El algoritmo Greedy no requiere este parámetro, pues realiza un número fijo de evaluaciones determinado por la instancia.
+    
+    \item \textbf{Criterio de parada}: Además del límite de evaluaciones, los algoritmos de búsqueda local se detienen cuando no encuentran mejora en todo el vecindario explorado.
+    
+    \item \textbf{Medición de tiempos}: Para medir los tiempos de ejecución se utilizó el cronómetro de alta resolución proporcionado por la biblioteca \texttt{<chrono>} de C++.
+\end{itemize}
+
 \subsection{Resultados por algoritmo}
 
-\newpage
 \subsubsection{Resultados obtenidos por el Algoritmo Greedy en el MDD}
 
 \begin{table}[ht]
@@ -661,5 +739,149 @@ GKD-b\_49\_n150\_m45 & 128.89 & 0.25813 \\ \hline
 GKD-b\_50\_n150\_m45 & 151.46 & 0.24663 \\ \hline
 \end{tabular}
 \end{table}
+
+\newpage
+\subsection{Resultados globales}
+
+Una vez analizados los resultados detallados por algoritmo y caso, en esta sección presentamos las tablas resumen que agrupan los datos por tamaño y los resultados globales.
+
+\subsubsection{Resultados globales por Tamaño en el MDD}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|c|r|r|}
+\hline
+\textbf{Algoritmo} & \textbf{Tamaño} & \textbf{Desv} & \textbf{Tiempo} \\ \hline
+Greedy & 25 & 156.02 & 0.00014 \\ \hline
+LSrandom & 25 & 55.64 & 0.00024 \\ \hline
+LSheur & 25 & 58.83 & 0.00029 \\ \hline
+Greedy & 50 & 823.40 & 0.00104 \\ \hline
+LSrandom & 50 & 353.61 & 0.00169 \\ \hline
+LSheur & 50 & 394.87 & 0.00351 \\ \hline
+Greedy & 100 & 357.14 & 0.01081 \\ \hline
+LSrandom & 100 & 189.47 & 0.01476 \\ \hline
+LSheur & 100 & 211.40 & 0.03858 \\ \hline
+Greedy & 125 & 264.72 & 0.02307 \\ \hline
+LSrandom & 125 & 171.11 & 0.03210 \\ \hline
+LSheur & 125 & 159.13 & 0.07092 \\ \hline
+Greedy & 150 & 233.22 & 0.04783 \\ \hline
+LSrandom & 150 & 141.12 & 0.06850 \\ \hline
+LSheur & 150 & 158.24 & 0.13766 \\ \hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Resultados globales totales en el MDD}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Algoritmo} & \textbf{Desv} & \textbf{Tiempo} \\ \hline
+Greedy & 366.90 & 0.01658 \\ \hline
+LSrandom & 182.19 & 0.02346 \\ \hline
+LSheur & 196.49 & 0.05019 \\ \hline
+\end{tabular}
+\end{table}
+
+\newpage
+\section{Análisis de resultados}
+
+A continuación se presenta un análisis detallado de los resultados obtenidos con los algoritmos implementados para resolver el problema MDDP. Este análisis se centra en interpretar el comportamiento de cada algoritmo y las relaciones entre su diseño y los resultados experimentales.
+
+\subsection{Análisis comparativo global}
+
+Observando las tablas de resultados globales, podemos extraer varias conclusiones importantes:
+
+\begin{itemize}
+    \item El algoritmo Greedy, aunque es el más rápido (0.01658 segundos en promedio), presenta la mayor desviación respecto a los mejores valores conocidos (366.90\%). Esto es consistente con la naturaleza miope de este algoritmo, que toma decisiones localmente óptimas sin considerar su impacto en la solución final.
+    
+    \item La Búsqueda Local con exploración aleatoria (LSrandom) logra la menor desviación global (182.19\%), con un tiempo computacional moderado (0.02346 segundos). Esto muestra la efectividad de esta metaheurística para escapar de óptimos locales y explorar más ampliamente el espacio de soluciones.
+    
+    \item La Búsqueda Local con exploración heurística (LSheur) obtiene resultados intermedios en calidad (196.49\% de desviación), pero con el mayor coste computacional (0.05019 segundos). Contrario a lo esperado, la versión heurística no supera a la versión aleatoria en términos de calidad global de soluciones.
+\end{itemize}
+
+Este comportamiento podría explicarse por la posible tendencia de la exploración heurística a quedar atrapada en regiones del espacio de búsqueda que, aunque prometedoras inicialmente, no contienen las mejores soluciones globales.
+
+\subsection{Análisis por tamaño de instancia}
+
+Analizando el comportamiento de los algoritmos según el tamaño de las instancias:
+
+\begin{itemize}
+    \item \textbf{Instancias pequeñas (n=25)}: Todos los algoritmos obtienen resultados relativamente buenos, con desviaciones moderadas. Las búsquedas locales (55.64\% y 58.83\%) superan claramente al Greedy (156.02\%), sin una diferencia sustancial entre las dos versiones de BL.
+    
+    \item \textbf{Instancias medianas (n=50)}: Se observa una degradación significativa del algoritmo Greedy (823.40\%), mientras que las búsquedas locales mantienen un rendimiento más estable (353.61\% y 394.87\%).
+    
+    \item \textbf{Instancias grandes (n=100-150)}: El rendimiento de todos los algoritmos mejora respecto a las instancias medianas, con desviaciones más controladas. Especialmente destacable es que la diferencia entre Greedy y las búsquedas locales se reduce (233.22\% vs. 141.12\% y 158.24\% para n=150).
+\end{itemize}
+
+Esta evolución sugiere que la estructura del problema varía con el tamaño. Particularmente interesante es la mejora relativa del Greedy en instancias grandes, lo que podría indicar que en estas instancias, las decisiones localmente óptimas tienden a producir soluciones globalmente aceptables.
+
+\subsection{Análisis del comportamiento de los algoritmos}
+
+\subsubsection{Algoritmo Greedy}
+
+El algoritmo Greedy muestra una alta variabilidad en su rendimiento:
+
+\begin{itemize}
+    \item Excelente en instancias muy pequeñas (n=25, m=2), donde obtiene la solución óptima (desviación 0\%).
+    \item Muy deficiente en instancias medianas, especialmente con n=50, m=5, donde alcanza desviaciones superiores al 1500\%.
+    \item Mejora considerablemente en instancias grandes con valores de m proporcionalmente altos (n=150, m=45), con desviaciones en torno al 100-200\%.
+\end{itemize}
+
+Este comportamiento puede explicarse por la naturaleza combinatoria del problema. En instancias muy pequeñas, el espacio de soluciones es reducido y el algoritmo tiene alta probabilidad de encontrar buenas soluciones. En instancias medianas, la complejidad aumenta rápidamente, pero el algoritmo solo explora un camino. En instancias grandes con m grande, es posible que la distribución de los elementos haga que muchos caminos de construcción lleven a soluciones relativamente buenas.
+
+\subsubsection{Búsqueda Local con exploración aleatoria (LSrandom)}
+
+Este algoritmo muestra un comportamiento más consistente a través de diferentes tamaños:
+
+\begin{itemize}
+    \item Al igual que Greedy, obtiene soluciones óptimas para instancias muy pequeñas.
+    \item Mantiene desviaciones más controladas en instancias medianas (353.61\% para n=50).
+    \item Consigue las mejores soluciones globales, especialmente efectivas en instancias grandes.
+\end{itemize}
+
+La capacidad de la búsqueda local para mejorar iterativamente una solución inicial permite superar las limitaciones del enfoque Greedy. La exploración aleatoria del vecindario facilita escapar de óptimos locales, lo que explica su mejor rendimiento global.
+
+\subsubsection{Búsqueda Local con exploración heurística (LSheur)}
+
+Este algoritmo presenta un comportamiento interesante:
+
+\begin{itemize}
+    \item Similar a LSrandom en instancias pequeñas.
+    \item Ligeramente peor que LSrandom en instancias medianas.
+    \item Más efectivo que LSrandom en algunas instancias grandes (especialmente n=125).
+    \item Significativamente más lento que LSrandom en todas las categorías, con tiempos hasta 2-3 veces mayores.
+\end{itemize}
+
+La estrategia heurística para explorar el vecindario parece enfocar la búsqueda demasiado intensamente en ciertas regiones, lo que puede resultar contraproducente si esas regiones no contienen las mejores soluciones. El mayor coste computacional refleja el esfuerzo adicional para ordenar los elementos según su contribución al fitness.
+
+\subsection{Relación entre tiempo y calidad}
+
+Existe un claro compromiso entre tiempo de ejecución y calidad de las soluciones:
+
+\begin{itemize}
+    \item El algoritmo Greedy es aproximadamente 1.4 veces más rápido que LSrandom, pero obtiene soluciones con una desviación 2 veces mayor.
+    \item LSheur es 2.1 veces más lento que LSrandom, pero no mejora la calidad de las soluciones en promedio.
+\end{itemize}
+
+Estos datos sugieren que LSrandom representa el mejor equilibrio entre calidad y tiempo de ejecución para este problema.
+
+\subsection{Conclusiones}
+
+Del análisis realizado se pueden extraer las siguientes conclusiones:
+
+\begin{enumerate}
+    \item La Búsqueda Local con exploración aleatoria (LSrandom) es la mejor opción global para resolver el problema MDDP, ofreciendo un buen equilibrio entre calidad de soluciones y tiempo de ejecución.
+    
+    \item El algoritmo Greedy puede ser una alternativa aceptable cuando el tiempo de ejecución es crítico o para instancias muy grandes con valores de m elevados.
+    
+    \item La estrategia de exploración heurística (LSheur) no justifica su mayor coste computacional, ya que no mejora significativamente los resultados de la exploración aleatoria.
+    
+    \item La dificultad del problema no escala linealmente con el tamaño de la instancia, siendo las instancias de tamaño medio (n=50) aparentemente más difíciles que algunas instancias grandes.
+    
+    \item La factorización de la función objetivo ha sido crucial para la eficiencia de los algoritmos de búsqueda local, permitiendo evaluar movimientos con un coste computacional reducido.
+\end{enumerate}
+
+Estos resultados demuestran la efectividad de las técnicas de búsqueda local para problemas de optimización combinatoria como el MDDP, y proporcionan una base sólida para futuras investigaciones con metaheurísticas más avanzadas.
 
 \end{document}
